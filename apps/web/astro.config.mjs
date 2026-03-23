@@ -11,17 +11,13 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: true },
-    // Força a geração de uma função serverless compatível com monorepos
-    functionPerRoute: false, 
+    // Desativa funções por rota para gerar um único entry.mjs sólido na raiz do servidor
+    functionPerRoute: false,
+    // Garante compatibilidade com o runtime da Vercel em monorepos
+    isServerlessFunction: true
   }),
   build: {
-    // Garante que o rastro de arquivos seja achatado para evitar erros de importação
+    // Força um rastro de saída achatado
     format: 'file'
-  },
-  vite: {
-    ssr: {
-      // Evita que dependências externas quebrem o rastro do runtime
-      noExternal: ['@astrojs/vercel']
-    }
   }
 });
