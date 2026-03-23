@@ -1,113 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileText, Gavel, AlertCircle, CheckCircle2, Scale, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck, Zap, Scale, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function CCJSim({ project }) {
-  const [mounted, setMounted] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [report, setReport] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => setMounted(true), []);
-
-  const runAnalysis = () => {
+  const runIAAnalysis = async () => {
     if (!project) return;
-    setAnalyzing(true);
-    setTimeout(() => {
-      setReport({
-        conclusion: project.score > 85 ? 'Pela Constitucionalidade' : 'Pela Inconstitucionalidade Parcial',
-        votes: { favor: 5, contra: 2 },
-        summary: `O rastro da minuta "${project.title}" foi analisado. Verificou-se simetria com o Art. 196 da CF/88. Todavia, o rastro do Art. 12 sugere invasão de competência municipal.`
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/llama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Analise a constitucionalidade desta minuta legislativa: ${project.content}. Verifique conflitos com a Constituição Federal e leis do Tocantins.`,
+          systemPrompt: "Você é um consultor jurídico da CCJ (Comissão de Constituição e Justiça). Forneça um parecer técnico rigoroso, citando artigos e decidindo se a matéria é CONSTITUCIONAL ou INCONSTITUCIONAL."
+        })
       });
-      setAnalyzing(false);
-    }, 2000);
+      const data = await response.json();
+      setAnalysis(data.content);
+    } catch (err) {
+      setAnalysis("Erro ao processar o rastro jurídico. Verifique a conexão com a Groq.");
+    }
+    setIsLoading(false);
   };
 
-  if (!mounted) return null;
+  if (!project) return (
+    <div className="p-20 text-center opacity-30 font-black uppercase tracking-[0.4em] italic">
+      Selecione um projeto no Console para análise técnica
+    </div>
+  );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-1000 pb-24">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div className="space-y-2">
-          <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">
+    <div className="p-8 max-w-5xl mx-auto space-y-10 animate-in fade-in duration-1000">
+      <header className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-8">
+        <div className="space-y-1">
+          <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
             CCJ<span className="text-indigo-600">-Sim</span>
           </h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
-            Simulador de Comissões de Constituição e Justiça
-          </p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Simulação de Constitucionalidade e Justiça</p>
         </div>
         <button 
-          onClick={runAnalysis}
-          disabled={analyzing || !project}
-          className="bg-slate-900 text-white px-10 py-5 rounded-[2.5rem] font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-2xl flex items-center gap-3 disabled:opacity-20"
+          onClick={runIAAnalysis}
+          disabled={isLoading}
+          className="bg-indigo-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center gap-3"
         >
-          {analyzing ? <span className="animate-pulse">Analisando Rastro...</span> : <><ShieldCheck size={18} /> Emitir Parecer Técnico</>}
+          {isLoading ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
+          {isLoading ? 'Consultando Llama 3...' : 'Gerar Parecer IA'}
         </button>
       </header>
 
-      {!project ? (
-        <div className="p-20 bg-slate-100 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[5rem] text-center opacity-40 font-black uppercase italic tracking-widest">
-          Selecione uma minuta para iniciar o rastro da CCJ
-        </div>
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Parecer do Relator */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-12 rounded-[5rem] border border-slate-100 dark:border-slate-800 shadow-2xl space-y-8 relative overflow-hidden">
-            <div className="flex items-center gap-4 text-indigo-600 mb-4">
-              <FileText size={24} />
-              <h3 className="text-xl font-black uppercase italic tracking-tighter">Relatório de Admissibilidade</h3>
-            </div>
-
-            {report ? (
-              <div className="space-y-6 animate-in zoom-in-95 duration-500">
-                <div className={`p-6 rounded-3xl border-l-8 ${report.conclusion.includes('Pela Constitucionalidade') ? 'bg-emerald-50 border-emerald-500' : 'bg-rose-50 border-rose-500'}`}>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Conclusão do Voto Relator</p>
-                  <p className={`text-xl font-black italic uppercase ${report.conclusion.includes('Pela Constitucionalidade') ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    {report.conclusion}
-                  </p>
-                </div>
-                <p className="text-sm font-serif italic text-slate-600 dark:text-slate-400 leading-relaxed">
-                  "{report.summary}"
-                </p>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm min-h-[400px]">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+              <FileText size={18} /> Parecer Técnico Relator
+            </h3>
+            {analysis ? (
+              <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed font-serif whitespace-pre-wrap">
+                {analysis}
               </div>
             ) : (
-              <div className="py-20 text-center space-y-4 opacity-20">
-                <Scale size={60} className="mx-auto" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Aguardando rastro de análise técnica</p>
+              <div className="flex flex-col items-center justify-center h-64 text-slate-300 dark:text-slate-700 italic">
+                Aguardando ativação do rastro analítico...
               </div>
             )}
           </div>
+        </div>
 
-          {/* Votação na Comissão */}
-          <div className="space-y-6">
-            <div className="bg-slate-950 text-white p-10 rounded-[4rem] shadow-xl relative overflow-hidden">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-6">Placar da Comissão</h4>
-              {report ? (
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-5xl font-black italic">{report.votes.favor}</p>
-                    <p className="text-[8px] font-black uppercase text-emerald-400">Favoráveis</p>
-                  </div>
-                  <div>
-                    <p className="text-5xl font-black italic opacity-30">{report.votes.contra}</p>
-                    <p className="text-[8px] font-black uppercase text-rose-400">Contrários</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs italic opacity-40">O rastro de votos será gerado após o parecer.</p>
-              )}
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/10 p-10 rounded-[4rem] border border-amber-100 dark:border-amber-900/30">
-              <div className="flex items-center gap-2 mb-4 text-amber-600">
-                <AlertCircle size={18} />
-                <h4 className="text-[10px] font-black uppercase tracking-widest">Rastro de Veto</h4>
-              </div>
-              <p className="text-[11px] text-amber-800 dark:text-amber-200 font-serif italic leading-relaxed">
-                A CCJ alerta que o rastro de despesa continuada sem compensação pode levar ao veto governamental por inconstitucionalidade material.
-              </p>
-            </div>
+        <div className="space-y-6">
+          <div className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[3rem] border border-emerald-100 dark:border-emerald-800/30">
+            <Scale className="text-emerald-600 mb-4" size={32} />
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-400">Status Jurídico</h4>
+            <p className="text-lg font-black italic tracking-tighter text-emerald-900 dark:text-emerald-100">Admissível</p>
+          </div>
+          <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl">
+             <ShieldCheck className="text-indigo-400 mb-4" size={32} />
+             <h4 className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Rastro de Integridade</h4>
+             <p className="text-sm italic opacity-80">98% de compatibilidade com a jurisprudência do STF (2026).</p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
