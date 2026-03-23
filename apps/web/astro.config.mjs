@@ -11,5 +11,11 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: true },
+    // Força o rastro de saída para o padrão que a Vercel espera em monorepos
+    isServerlessFunction: true,
   }),
+  // Garante que o build não crie subpastas desnecessárias que confundam o runtime
+  build: {
+    format: 'file'
+  }
 });
