@@ -1,0 +1,15 @@
+{
+  "name": "lexlab-fullstack",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:realtime\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:realtime": "cd apps/realtime && node server.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,23 +1,21 @@
-import { getRanking, isAdmin } from "./governance.mjs";
-import { createDraft, publishProject } from "./draft.mjs";
-import { createPR, listPRs, votePR, mergePR } from "./pr_system.mjs";
-import { saveVersion, listVersions, addComment, listComments } from "./features.mjs";
+import { Hocuspocus } from '@hocuspocus/server';
 import http from 'http';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import { pool } from './db.mjs';
+import { verifyGoogleToken, verify } from './auth.mjs';
 
-const SECRET = 'access-secret';
-const REFRESH_SECRET = 'refresh-secret';
+// --- SERVIDOR REALTIME (Porta 1234) ---
+const hocuspocus = new Hocuspocus({ port: 1234 });
+hocuspocus.listen();
 
-// ================= HELPERS =================
-
-function send(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+// --- HELPERS ---
+function authMiddleware(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return null;
+  const token = authHeader.split(' ')[1];
+  try { return verify(token); } catch (err) { return null; }
 }
 
-function parseBody(req) {
+async function parseBody(req) {
   return new Promise((resolve) => {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -28,178 +26,60 @@ function parseBody(req) {
   });
 }
 
-function generateTokens(user) {
-  return {
-    accessToken: jwt.sign(user, SECRET, { expiresIn: '15m' }),
-    refreshToken: jwt.sign(user, REFRESH_SECRET, { expiresIn: '7d' })
-  };
-}
-
-function authMiddleware(req) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-
-  const token = header.split(' ')[1];
-
-  try {
-    return jwt.verify(token, SECRET);
-  } catch {
-    return null;
-  }
-}
-
-// ================= SERVER =================
-
+// --- SERVIDOR API (Porta 3001) ---
 const server = http.createServer(async (req, res) => {
-
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    return res.end();
+  if (req.method === 'OPTIONS') { res.writeHead(200); return res.end(); }
+
+  // 1. ROTA: SAÚDE DA IA (Llama/Ollama)
+  if (req.url === '/ai/health' && req.method === 'GET') {
+    try {
+      const aiRes = await fetch('http://localhost:11434/api/tags');
+      const status = aiRes.ok ? 'online' : 'offline';
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status }));
+    } catch (err) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status: 'offline' }));
+    }
   }
 
-  // ================= AUTH =================
+  // 2. ROTA: AUTH GOOGLE
+  if (req.url === '/auth/google' && req.method === 'POST') {
+    const { token } = await parseBody(req);
+    const appToken = await verifyGoogleToken(token);
+    res.writeHead(appToken ? 200 : 401, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(appToken ? { token: appToken } : { error: 'Auth Failed' }));
+  }
 
-  if (req.url === '/auth/register' && req.method === 'POST') {
-
-    const { email, password } = await parseBody(req);
-
-    const hash = await bcrypt.hash(password, 10);
-
+  // 3. ROTA: CRIAR RASCUNHO (DRAFT)
+  if (req.url === '/draft' && req.method === 'POST') {
+    const user = authMiddleware(req);
+    if (!user) { res.writeHead(401); return res.end(); }
     try {
       const result = await pool.query(
-        'INSERT INTO users (email, password) VALUES ($1,$2) RETURNING id',
-        [email, hash]
+        'INSERT INTO projects (user_id, title, content) VALUES ($1, $2, $3) RETURNING *',
+        [user.id, 'Nova Minuta', '<h1>Título</h1><p>Comece aqui sua redação...</p>']
       );
-
-      const user = { id: result.rows[0].id, email };
-
-      return send(res, 200, generateTokens(user));
-
-    } catch {
-      return send(res, 400, { error: 'User exists' });
-    }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(result.rows[0]));
+    } catch (err) { res.writeHead(500); return res.end(); }
   }
 
-  if (req.url === '/auth/login' && req.method === 'POST') {
-
-    const { email, password } = await parseBody(req);
-
-    const result = await pool.query(
-      'SELECT * FROM users WHERE email=$1',
-      [email]
-    );
-
-    const user = result.rows[0];
-
-    if (!user) return send(res, 401, { error: 'Invalid credentials' });
-
-    const valid = await bcrypt.compare(password, user.password);
-
-    if (!valid) return send(res, 401, { error: 'Invalid credentials' });
-
-    return send(res, 200, generateTokens({
-      id: user.id,
-      email
-    }));
-  }
-
-  if (req.url === '/auth/refresh' && req.method === 'POST') {
-
-    const { refreshToken } = await parseBody(req);
-
-    try {
-      const user = jwt.verify(refreshToken, REFRESH_SECRET);
-
-      return send(res, 200, generateTokens({
-        id: user.id,
-        email: user.email
-      }));
-
-    } catch {
-      return send(res, 401, {});
-    }
-  }
-
-  // ================= PROFILE =================
-
-  if (req.url === '/profile' && req.method === 'GET') {
-
-    const user = authMiddleware(req);
-    if (!user) return send(res, 401, {});
-
-    const result = await pool.query(
-      'SELECT id, email, name, bio FROM users WHERE id=$1',
-      [user.id]
-    );
-
-    const projects = await pool.query(
-      'SELECT id, title FROM projects WHERE user_id=$1',
-      [user.id]
-    );
-
-    return send(res, 200, {
-      user: result.rows[0],
-      reputation: 42,
-      projects: projects.rows
-    });
-  }
-
-  if (req.url === '/profile' && req.method === 'POST') {
-
-    const user = authMiddleware(req);
-    if (!user) return send(res, 401, {});
-
-    const { name, bio } = await parseBody(req);
-
-    await pool.query(
-      'UPDATE users SET name=$1, bio=$2 WHERE id=$3',
-      [name, bio, user.id]
-    );
-
-    return send(res, 200, { ok: true });
-  }
-
-  // ================= PROJECTS =================
-
+  // 4. ROTA: LISTAR PROJETOS
   if (req.url === '/projects' && req.method === 'GET') {
-
     const user = authMiddleware(req);
-    if (!user) return send(res, 401, []);
-
-    const result = await pool.query(
-      'SELECT * FROM projects WHERE user_id=$1 ORDER BY id DESC',
-      [user.id]
-    );
-
-    return send(res, 200, result.rows);
+    if (!user) { res.writeHead(401); return res.end(); }
+    const result = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC', [user.id]);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result.rows));
   }
 
-  if (req.url === '/projects' && req.method === 'POST') {
-
-    const user = authMiddleware(req);
-    if (!user) return send(res, 401, {});
-
-    const { title, content } = await parseBody(req);
-
-    await pool.query(
-      'INSERT INTO projects (user_id, title, content) VALUES ($1,$2,$3)',
-      [user.id, title, content]
-    );
-
-    return send(res, 200, { ok: true });
-  }
-
-  // ================= DEFAULT =================
-
-  send(res, 404, { error: 'Not found' });
-
+  res.writeHead(404);
+  res.end();
 });
 
-server.listen(3001, () => {
-  console.log('🚀 API rodando em http://localhost:3001');
-});
+server.listen(3001, () => console.log('🚀 API LexLab estável na porta 3001'));
