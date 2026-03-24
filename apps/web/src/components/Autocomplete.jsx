@@ -12,7 +12,7 @@ export default function Autocomplete({ editor }) {
       if (text.length < 20) return;
 
       try {
-        const res = await fetch('http://localhost:3001/suggest', {
+        const res = await fetch('http://localhost:1234/suggest', {
           method: 'POST',
           body: JSON.stringify({ text })
         });

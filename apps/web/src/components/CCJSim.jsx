@@ -53,7 +53,7 @@ export default function CCJSim({ project }) {
           className={`px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center gap-3 ${isLoading ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
         >
           {isLoading ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
-          {isLoading ? 'Consultando Relator IA...' : 'Gerar Parecer Técnico'}
+          {isLoading ? 'Processando Llama Local (LabSUS)...' : 'Gerar Parecer Técnico'}
         </button>
       </header>
 

@@ -15,7 +15,7 @@ export default function useAutosave(editor) {
         last.current = content;
 
         try {
-          await  fetchWithAuth('http://localhost:3001/versions', {
+          await  fetchWithAuth('http://localhost:1234/versions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

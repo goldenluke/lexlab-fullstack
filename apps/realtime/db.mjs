@@ -2,9 +2,9 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 export const pool = new Pool({
-  user: 'postgres',
+  user: 'lexlab',
   host: 'localhost',
   database: 'lexlab',
-  password: 'postgres',
-  port: 5432,
+  password: 'lexlab',
+  port: 5433,
 });

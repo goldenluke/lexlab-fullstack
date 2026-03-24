@@ -11,19 +11,10 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: true },
-    // Consolida tudo em um único arquivo de servidor para evitar caminhos perdidos
-    functionPerRoute: false,
-    // Garante que o rastro de saída seja compatível com o runtime da Vercel
-    isServerlessFunction: true
   }),
-  build: {
-    // Força um rastro de arquivos plano (flat) para evitar erros de importação profunda
-    format: 'file'
-  },
   vite: {
-    ssr: {
-      // Evita que o rastro do servidor se perca tentando importar módulos externos
-      noExternal: ['@astrojs/vercel']
+    server: {
+      allowedHosts: ['.ngrok-free.app']
     }
   }
 });

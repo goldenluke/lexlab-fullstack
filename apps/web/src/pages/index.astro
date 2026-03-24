@@ -1,10 +1,29 @@
 ---
-import '../styles/global.css';
-import App from '../components/App.jsx';
+import Layout from '../components/Layout.jsx';
+import PainelSaude from '../components/PainelSaude.jsx';
+import GeradorMinuta from '../components/GeradorMinuta.jsx';
 ---
 
-<html class="bg-gray-100 text-gray-800">
-  <body>
-    <App client:load />
+<html lang="pt-br">
+  <body class="bg-zinc-950 text-white">
+
+    <!-- Layout principal -->
+    <Layout client:only="react" />
+
+    <!-- Conteúdo -->
+    <main class="p-6 space-y-6">
+      <PainelSaude client:load />
+      <GeradorMinuta client:load />
+    </main>
+
   </body>
 </html>
+
+---
+import MinutaLive from '../components/MinutaLive.jsx';
+---
+
+<section style="margin-top: 2rem;">
+  <MinutaLive client:load />
+</section>
+

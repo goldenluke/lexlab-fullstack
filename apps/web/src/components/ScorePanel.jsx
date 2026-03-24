@@ -12,7 +12,7 @@ export default function ScorePanel({ editor }) {
       const text = editor.getText();
 
       try {
-        const res = await  fetchWithAuth('http://localhost:3001/score', {
+        const res = await  fetchWithAuth('http://localhost:1234/score', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

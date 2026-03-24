@@ -4,7 +4,7 @@ export default function SuggestBox({ text }) {
   const [suggestion, setSuggestion] = useState('');
 
   async function generate() {
-    const res = await fetch('http://localhost:3001/suggest', {
+    const res = await fetch('http://localhost:1234/suggest', {
       method: 'POST',
       body: JSON.stringify({ text })
     });

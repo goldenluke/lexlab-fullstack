@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 // Função auxiliar interna para evitar dependência de módulos externos que falham no import
 async function fetchWithAuth(url, options = {}) {
   const token = localStorage.getItem('token');
-  const res = await fetch(`http://localhost:3001${url}`, {
+  const res = await fetch(`http://localhost:1234${url}`, {
     ...options,
     headers: {
       ...options.headers,

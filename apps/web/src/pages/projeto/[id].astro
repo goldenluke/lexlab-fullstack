@@ -1,0 +1,36 @@
+// DESATIVADO PELO DEBUG LEXLAB
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Editor from '../../components/Editor.jsx';
+
+export async function getStaticPaths() {
+  const dir = path.resolve('../../src/leis/src/projetos-leis');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => fs.lstatSync(path.join(dir, f)).isDirectory())
+    .map(f => ({ params: { id: f } }));
+}
+const { id } = Astro.params;
+---
+<BaseLayout title={`Editando: ${id}`}>
+  <div class="max-w-6xl mx-auto px-4 py-10">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-4">
+        <div>
+            <a href="/" class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] hover:underline">← Voltar ao Acervo</a>
+            <h1 class="text-4xl font-black text-slate-900 mt-2 uppercase tracking-tighter italic">Codificando: <span class="text-blue-600">{id}</span></h1>
+        </div>
+        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sessão Realtime Ativa</span>
+        </div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-[3rem] shadow-2xl min-h-[700px] p-12 focus-within:border-blue-400 transition-colors">
+        <Editor client:only="react" docId={id} />
+    </div>
+  </div>
+</BaseLayout>

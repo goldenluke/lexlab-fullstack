@@ -5,18 +5,19 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:web": "cd apps/web && npm run dev",
-    "dev:realtime": "cd apps/realtime && node server.mjs",
+    "dev:web": "npm run dev --prefix apps/web -- --host",
+    "dev:realtime": "node apps/realtime/server.mjs",
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:realtime\"",
-    "build": "npm run build --prefix apps/web"
+    "build:web": "npm run build --prefix apps/web",
+    "start:web": "cd apps/web && node server.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "overrides": {
-    "yjs": "13.6.9"
-  },
   "dependencies": {
-    "diff": "^8.0.3"
+    "axios": "^1.13.6",
+    "cors": "^2.8.6",
+    "diff": "^8.0.3",
+    "dotenv": "^17.3.1"
   }
 }

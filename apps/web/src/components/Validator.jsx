@@ -12,7 +12,7 @@ export default function Validator({ editor }) {
       if (text.length < 30) return;
 
       try {
-        const res = await fetch('http://localhost:3001/validate', {
+        const res = await fetch('http://localhost:1234/validate', {
           method: 'POST',
           body: JSON.stringify({ text })
         });

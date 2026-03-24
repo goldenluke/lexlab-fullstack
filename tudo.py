@@ -1,74 +1,72 @@
 import os
 
-def juntar_arquivos_pasta_atual(extensoes=('.py', '.html'), arquivo_saida='resultado_junto.txt'):
-    """
-    Encontra todos os arquivos com as extensões especificadas na pasta atual
-    (e subpastas) e os junta em um único arquivo de texto, ignorando
-    pastas comuns de desenvolvimento.
-
-    Argumentos:
-        extensoes (tuple): Uma tupla de extensões de arquivo a serem detectadas (ex: ('.py', '.html')).
-        arquivo_saida (str): O nome do arquivo que conterá o conteúdo combinado.
-    """
+def gerar_rastro_codigo(
+    extensoes=(
+        '.py', '.js', '.jsx', '.ts', '.tsx',
+        '.css', '.astro', '.sh',
+        '.yml', '.yaml', '.txt'
+    ),
+    arquivo_saida='codigo_completo.txt',
+    tamanho_max_mb=2
+):
     pasta_raiz = '.'
     arquivos_encontrados = 0
-    pastas_a_ignorar = {'.venv', '__pycache__', '.git', 'node_modules', 'build'}
+    arquivos_processados = set() # Evita repetições
 
-    caminho_absoluto_saida = os.path.abspath(arquivo_saida)
-    # Garante que o script que está rodando também seja ignorado
-    try:
-        caminho_absoluto_script_atual = os.path.abspath(__file__)
-    except NameError:
-        # Se executado interativamente, __file__ não existe
-        caminho_absoluto_script_atual = ''
+    # Pastas de sistema e dependências (não entrar nelas)
+    pastas_a_ignorar = {
+        'venv', '.venv', 'env', '__pycache__', '.git',
+        'node_modules', '.mypy_cache', '.pytest_cache',
+        'dist', 'build', '.next', '.nuxt', '.output', 'public'
+    }
 
+    tamanho_max_bytes = tamanho_max_mb * 1024 * 1024
+    caminho_saida_abs = os.path.abspath(arquivo_saida)
 
-    print(f"Analisando a pasta atual: '{os.getcwd()}'")
-    print(f"Buscando por extensões: {list(extensoes)}")
-    print(f"Pastas a ignorar: {list(pastas_a_ignorar)}")
+    print(f"🚀 Iniciando rastro LexLab em: {os.getcwd()}")
 
-    try:
-        with open(arquivo_saida, 'w', encoding='utf-8') as outfile:
-            for pasta_atual, subpastas, arquivos in os.walk(pasta_raiz):
-                # --- LÓGICA PARA IGNORAR PASTAS ---
-                # Modifica a lista de subpastas que o os.walk visitará
-                subpastas[:] = [d for d in subpastas if d not in pastas_a_ignorar]
+    with open(arquivo_saida, 'w', encoding='utf-8') as outfile:
+        for pasta_atual, subpastas, arquivos in os.walk(pasta_raiz):
 
-                for arquivo in sorted(arquivos): # Ordena os arquivos para um resultado consistente
-                    if arquivo.endswith(extensoes):
-                        caminho_completo = os.path.join(pasta_atual, arquivo)
-                        caminho_absoluto_arquivo = os.path.abspath(caminho_completo)
+            # 🔥 CORREÇÃO: Poda real das subpastas
+            # Isso impede o os.walk de entrar em pastas como node_modules
+            subpastas[:] = [d for d in subpastas if d not in pastas_a_ignorar and not d.startswith('.')]
 
-                        # Ignora o próprio arquivo de saída e o script que está rodando
-                        if caminho_absoluto_arquivo == caminho_absoluto_saida or \
-                           caminho_absoluto_arquivo == caminho_absoluto_script_atual:
-                            continue
+            for arquivo in arquivos:
+                if not arquivo.endswith(extensoes):
+                    continue
 
-                        print(f"  -> Adicionando o arquivo: {caminho_completo}")
-                        arquivos_encontrados += 1
+                caminho_completo = os.path.join(pasta_atual, arquivo)
+                caminho_abs = os.path.abspath(caminho_completo)
+                caminho_rel = os.path.relpath(caminho_abs, pasta_raiz)
 
-                        outfile.write(f'# === Início do arquivo: {caminho_completo} ===\n\n')
-                        try:
-                            with open(caminho_completo, 'r', encoding='utf-8', errors='ignore') as infile:
-                                outfile.write(infile.read())
-                            outfile.write(f'\n\n# === Fim do arquivo: {caminho_completo} ===\n\n')
-                        except Exception as e:
-                            outfile.write(f'# === Erro ao ler o arquivo: {caminho_completo} - {e} ===\n\n')
+                # 🚫 Evita processar o próprio arquivo de saída ou duplicados
+                if caminho_abs == caminho_saida_abs or caminho_abs in arquivos_processados:
+                    continue
 
-        if arquivos_encontrados > 0:
-            print(f"\n✅ Sucesso! {arquivos_encontrados} arquivo(s) foram juntados em '{arquivo_saida}'.")
-        else:
-            print(f"\nNenhum arquivo com as extensões {list(extensoes)} foi encontrado para juntar.")
-            # Remove o arquivo de saída se ele foi criado mas ficou vazio
-            if os.path.exists(arquivo_saida):
-                os.remove(arquivo_saida)
+                # 🚫 Filtro de tamanho
+                try:
+                    if os.path.getsize(caminho_completo) > tamanho_max_bytes:
+                        print(f"⏩ Pulando (Grande): {caminho_rel}")
+                        continue
+                except OSError:
+                    continue
 
-    except Exception as e:
-        print(f"❌ Ocorreu um erro inesperado: {e}")
+                print(f"📄 Adicionando rastro: {caminho_rel}")
 
-# --- Como usar ---
-# 1. Salve este código como um arquivo .py (ex: juntar_tudo.py) na pasta raiz do seu projeto.
-# 2. Execute-o a partir do terminal com: python juntar_tudo.py
+                outfile.write(f"\n{'='*80}\n")
+                outfile.write(f"ARQUIVO: {caminho_rel}\n")
+                outfile.write(f"{'='*80}\n\n")
+
+                try:
+                    with open(caminho_completo, 'r', encoding='utf-8', errors='ignore') as f:
+                        outfile.write(f.read())
+                    arquivos_encontrados += 1
+                    arquivos_processados.add(caminho_abs)
+                except Exception as e:
+                    outfile.write(f"\n[ERRO DE LEITURA]: {e}\n")
+
+    print(f"\n✨ Rastro concluído! {arquivos_encontrados} arquivos consolidados em {arquivo_saida}")
+
 if __name__ == "__main__":
-    # Chama a função para juntar arquivos .py e .html
-    juntar_arquivos_pasta_atual(extensoes=('.py', '.html', '.jsx', 'js', 'css', '.md', '.yml', '.sh', '.mjs', '.json' , '.astro','.ts'), arquivo_saida='codigo_completo.txt')
+    gerar_rastro_codigo()

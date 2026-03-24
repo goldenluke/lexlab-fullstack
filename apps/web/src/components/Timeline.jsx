@@ -1,3 +1,4 @@
+// DESATIVADO PELO DEBUG LEXLAB
 import React, { useState, useEffect } from 'react';
 import { History, Calendar, ArrowRight, ShieldCheck, Clock, Landmark, FileText } from 'lucide-react';
 

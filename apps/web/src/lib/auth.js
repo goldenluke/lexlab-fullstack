@@ -1,47 +1,30 @@
-// Rastro de Autenticação e Comunicação LexLab
+export function getUser(){
+  return JSON.parse(localStorage.getItem('user') || '{}');
+}
 
-export const getAuthSession = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('lexlab_auth') === 'true';
-  }
-  return false;
-};
+export function getToken(){
+  return getUser()?.token || '';
+}
 
-export const logout = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('lexlab_auth');
-    window.location.reload();
-  }
-};
+// 🔥 FUNÇÃO QUE TODO SISTEMA USA
+export async function fetchWithAuth(url, options = {}){
 
-/**
- * Função fetchWithAuth: Centraliza chamadas para a API do Digital Twin
- * com suporte a tratamento de erros e contexto de autenticação.
- */
-export const fetchWithAuth = async (url, options = {}) => {
-  const defaultOptions = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  const token = getToken();
+
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: token,
+    'Content-Type': 'application/json'
   };
 
-  const mergedOptions = {
-    ...defaultOptions,
+  const res = await fetch(url, {
     ...options,
-    headers: {
-      ...defaultOptions.headers,
-      ...(options.headers || {}),
-    },
-  };
+    headers
+  });
 
-  try {
-    const response = await fetch(url, mergedOptions);
-    if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Rastro de erro na fetchWithAuth:", error);
-    throw error;
+  if(res.status === 401){
+    console.warn("Não autenticado");
   }
-};
+
+  return res;
+}

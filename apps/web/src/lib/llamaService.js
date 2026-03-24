@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001/ai';
+const API_URL = 'http://localhost:1234/ai';
 
 export const llama = {
   // Analisar texto para o Editor

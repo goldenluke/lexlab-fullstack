@@ -1,3 +1,4 @@
+// DESATIVADO PELO DEBUG LEXLAB
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Link, Plus, Trash2, FileSearch, Quote, ExternalLink, ShieldCheck } from 'lucide-react';
 

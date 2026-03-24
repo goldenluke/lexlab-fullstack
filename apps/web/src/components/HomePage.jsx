@@ -8,7 +8,7 @@ export default function HomePage({ onStart }) {
     // Simulação de Verificação de Conexão com o Llama 3
     const checkLlama = async () => {
       try {
-        const res = await fetch('http://localhost:3001/ai/health');
+        const res = await fetch('http://localhost:1234/ai/health');
         if (res.ok) setAiStatus('online');
         else setAiStatus('offline');
       } catch (e) {
