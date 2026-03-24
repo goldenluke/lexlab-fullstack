@@ -1,29 +1,37 @@
 ---
-import Layout from '../components/Layout.jsx';
-import PainelSaude from '../components/PainelSaude.jsx';
-import GeradorMinuta from '../components/GeradorMinuta.jsx';
+import { useState } from 'react';
+import MinutaLive from '../components/MinutaLive.astro'; // Certifique-se de que o caminho está correto
+
+const [isLive, setIsLive] = useState(false);
 ---
 
-<html lang="pt-br">
-  <body class="bg-zinc-950 text-white">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minuta Live</title>
+  </head>
+  <body>
+    <header>
+      <h1>Minuta Legal - Dashboard</h1>
+    </header>
+    <main>
+      <!-- Teste de integração do componente MinutaLive -->
+      <div>
+        <button onClick={() => setIsLive(!isLive)}>
+          {isLive ? 'Desligar MinutaLive' : 'Ligar MinutaLive'}
+        </button>
 
-    <!-- Layout principal -->
-    <Layout client:only="react" />
+        <!-- Condicional para exibir o componente MinutaLive -->
+        {isLive && <MinutaLive />}
+      </div>
 
-    <!-- Conteúdo -->
-    <main class="p-6 space-y-6">
-      <PainelSaude client:load />
-      <GeradorMinuta client:load />
+      <!-- Outros conteúdos ou componentes que você queira adicionar -->
+      <section>
+        <h2>Informações de Saúde</h2>
+        <p>Aqui você pode adicionar detalhes sobre saúde pública, jurisprudência ou outros dados.</p>
+      </section>
     </main>
-
   </body>
 </html>
-
----
-import MinutaLive from '../components/MinutaLive.jsx';
----
-
-<section style="margin-top: 2rem;">
-  <MinutaLive client:load />
-</section>
-
